@@ -11,21 +11,6 @@ url = 'https://www.girly.com.br'
 apikey = 'd3d3e45cc44cdf02ecf8213180ba336e'
 appkey = '2erarumEtubrUbrapeJaphEphekuph'
 
-def atualizaestoque(productID, grade, url):
-    header = {  'Content-Type': 'application/json',
-                'X-API-KEY': apikey,
-                'X-APP-KEY': appkey
-             }
-    data={"stock": []}
-    request_url = url+'/api-v1/variants?product_id='+str(productID)
-    response = requests.get(request_url, headers=header)
-    for variation in response.json():
-        for option in variation['option_values']:
-            if option['option_name'] == 'Tamanho':
-                print(variation['id']+' -> '+option['option_value_name']+' = '+str(grade[option['option_value_name']]))
-                data['stock'].append({'variant_id':variation['id'],'quantity':grade[option['option_value_name']]})
-                request_url = url+'/api-v1/stock'
-    bar = requests.put(request_url, headers=header, data=json.dumps(data))
 
 def login():
     driver = webdriver.Chrome('/home/fabiano/chromedriver')
@@ -48,55 +33,80 @@ def buscaestoque(driver,code):
         grade[x]=0 if disp[i-1].text=='Avise-me' else 1
     return grade
 
-def giga(code):
-    foo = '75363'
-    if code == foo:
-        grade = {'38': 0, '40': 1, '42': 1}
-    else:
-        grade = {'38': 1, '40': 1, '42': 1}
-    return grade
-    
+def atualizaestoque(productID, grade, tamdisp, url):
+    header = {  'Content-Type': 'application/json',
+                'X-API-KEY': apikey,
+                'X-APP-KEY': appkey
+             }
+    data={"stock": []}
+    request_url = url+'/api-v1/variants?product_id='+str(productID)
+    response = requests.get(request_url, headers=header)
+    for variation in response.json():
+        for option in variation['option_values']:
+            if option['option_name'] == 'Tamanho':
+                print(variation['id']+' -> '+option['option_value_name']+' = '+str(grade[option['option_value_name']]))
+                if option['option_value_name'] != tamdisp:
+                    data['stock'].append({'variant_id':variation['id'],'quantity':grade[option['option_value_name']]})
+                else:
+                    print ('Valor não substituído: ' + option['option_value_name'] + ': qty(' + str(grade[option['option_value_name']]) + ') por já termos em estoque')
+    request_url = url+'/api-v1/stock'
+    bar = requests.put(request_url, headers=header, data=json.dumps(data))
+    return bar
+
 def getlistprod():
     listprod = {
-		3899047:'75372',
-		3902459:'75294',
-		3881419:'75364',
-		3812403:'75342',
-		3821667:'75320',
-		3902387:'75322',
-		3849397:'75228',
-		3902707:'75226',
-		3838864:'75239',
-		3902834:'75242',
-		3902871:'75396',
-		3838850:'75090',
-		3902882:'75092',
-		3902883:'75091',
-		3902902:'75233',
-		3902904:'75234',
-		3838848:'75080'
+        3899047:'75372',
+        3902459:'75294',
+        3881419:'75364',
+        3812403:'75342',
+        3821667:'75320',
+        3902387:'75322',
+        3849397:'75228',
+        3902707:'75226',
+        3838864:'75239',
+        3902834:'75242',
+        3902871:'75396',
+        3838850:'75090',
+        3902882:'75092',
+        3902883:'75091',
+        3902902:'75233',
+        3902904:'75234',
+        3838848:'75080',
+        3838866:'75245',
+        3905690:'75247',
+        3905701:'75246',
+        3905737:'74124',
+        3905757:'74076',
+        3843816:'73451',
+        3905797:'73450',
+        3881424:'75096',
+        3881425:'75097',
+        3838867:['75296','38'],
+        3812304:['75363','38'],
+        3881438:['75243','38'],
+        3838862:['75235','38'],
+        3843828:['74123','38'],
+        3843803:['74077','38'],
+        3838740:['75370','38']
     }
     return listprod
 
 def main():
     testeAPI = False
+    driver = login()
     listprod = getlistprod()
-    if testeAPI:
-        for productID in listprod:
+    for productID in listprod:
+        if isinstance(listprod[productID],str):
             codforn = listprod[productID]
-            grade = giga(codforn)
-            print(productID)
-            print(grade)
-            print('-------------')        
-    else:
-        driver = login()
-        for productID in listprod:
-            codforn = listprod[productID]
-            grade = buscaestoque(driver,codforn)
-            print(productID)
-            print(grade)
-            print('-------------')
-            atualizaestoque(productID, grade, url)
+            tamdisp = None
+        elif isinstance(listprod[productID],list):
+            codforn = listprod[productID][0]
+            tamdisp = str(listprod[productID][1])
+        grade = buscaestoque(driver,codforn)
+        print('-------------')
+        print(productID)
+        print(grade)
+        atualizaestoque(productID, grade, tamdisp, url)
 
     input("pressione qualquer tecla para finalizar")
 
